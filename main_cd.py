@@ -1,6 +1,9 @@
 from argparse import ArgumentParser
 import torch
 from models.trainer import *
+import os, sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 
 print(torch.cuda.is_available())
 
