@@ -1568,7 +1568,17 @@ class DecoderTransformer_v3(nn.Module):
         # Stage 3: x1/16 scale
         _c3_1 = self.linear_c3(c3_1).permute(0,2,1).reshape(n, -1, c3_1.shape[2], c3_1.shape[3])
         _c3_2 = self.linear_c3(c3_2).permute(0,2,1).reshape(n, -1, c3_2.shape[2], c3_2.shape[3])
-        _c3   = self.diff_c3(torch.cat((_c3_1, _c3_2), dim=1)) + F.interpolate(_c4, scale_factor=2, mode="bilinear")
+        #_c3   = self.diff_c3(torch.cat((_c3_1, _c3_2), dim=1)) + F.interpolate(_c4, scale_factor=2, mode="bilinear")
+        # 確保 _c3_1 和 _c3_2 空間大小一致
+        if _c3_1.size()[2:] != _c3_2.size()[2:]:
+          _c3_2 = F.interpolate(_c3_2, size=_c3_1.shape[2:], mode='bilinear', align_corners=False)
+        
+        diff_c3_out = self.diff_c3(torch.cat((_c3_1, _c3_2), dim=1))
+
+        # 確保 diff_c3_out 和 _c4 插值結果大小一致
+        _c4_up = F.interpolate(_c4, size=diff_c3_out.shape[2:], mode='bilinear', align_corners=False)
+
+        _c3 = diff_c3_out + _c4_up
         p_c3  = self.make_pred_c3(_c3)
         outputs.append(p_c3)
         _c3_up= resize(_c3, size=c1_2.size()[2:], mode='bilinear', align_corners=False)
